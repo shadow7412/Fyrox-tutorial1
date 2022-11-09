@@ -1,15 +1,34 @@
 extern crate fyrox;
+#[cfg(test)]
+use crate::{level::Level, player::Player};
 use fyrox::{
     core::{color::Color, futures::executor::block_on, pool::Handle},
-    engine::executor::Executor,
+    engine::{resource_manager::ResourceManager, executor::Executor},
     event::{Event, WindowEvent},
     event_loop::ControlFlow,
     plugin::{Plugin, PluginConstructor, PluginContext},
     scene::{Scene},
 };
 
+#[cfg(test)]
+mod level;
+#[cfg(test)]
+mod player;
+
+struct Player;
+impl Player {
+    async fn new(_: ResourceManager, _: &mut Scene) -> Self { Self }
+}
+
+struct Level;
+impl Level {
+    async fn new(_: ResourceManager, _: &mut Scene) -> Self { Self }
+}
+
 struct Game {
     scene: Handle<Scene>,
+    level: Level,
+    player: Player,
 }
 
 struct GameConstructor;
@@ -26,7 +45,11 @@ impl Game {
 
         scene.ambient_lighting_color = Color::opaque(150, 150, 150);
 
+        let player = block_on(Player::new(context.resource_manager.clone(), &mut scene));
+
         Self {
+            player,
+            level: block_on(Level::new(context.resource_manager.clone(), &mut scene)),
             scene: context.scenes.add(scene),
         }
     }
@@ -53,3 +76,4 @@ fn main() {
     executor.get_window().set_title("RPG");
     executor.run();
 }
+
